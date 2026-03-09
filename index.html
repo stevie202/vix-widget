@@ -16,6 +16,209 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
+    padding: 32px 16px;
+  }
+  .header { text-align: center; margin-bottom: 4px; }
+  .label { font-size: 10px; letter-spacing: 0.3em; color: #444; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; letter-spacing: 0.15em; color: #666; }
+
+  .card { width: 100%; max-width: 360px; background: #111; border: 1px solid #222; padding: 36px; }
+
+  .price  { font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 10px; transition: color 0.4s; }
+  .change { font-size: 13px; font-weight: 500; letter-spacing: 0.05em; margin-bottom: 28px; }
+  .up     { color: #ff4466; }
+  .down   { color: #00ff88; }
+  .neutral{ color: #666; }
+
+  .meter-label { font-size: 9px; letter-spacing: 0.15em; color: #444; margin-bottom: 8px; }
+  .meter-track { height: 4px; background: #1e1e1e; width: 100%; margin-bottom: 6px; }
+  .meter-fill  { height: 100%; width: 0%; transition: width 1.2s ease, background 0.4s; }
+  .meter-zones { display: flex; justify-content: space-between; font-size: 8px; color: #333; letter-spacing: 0.04em; margin-bottom: 24px; }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; padding: 6px 12px; border: 1px solid currentColor; margin-bottom: 28px; }
+
+  .divider { height: 1px; background: #1e1e1e; margin-bottom: 18px; }
+  .meta-row { display: flex; justify-content: space-between; font-size: 9px; color: #444; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .meta-val { color: #666; }
+
+  .footer-row { margin-top: 22px; display: flex; justify-content: space-between; align-items: center; }
+  .updated { font-size: 8px; color: #2a2a2a; letter-spacing: 0.08em; margin-top: 8px; }
+
+  .refresh-btn {
+    background: none; border: 1px solid #222; color: #444;
+    font-family: 'IBM Plex Mono', monospace; font-size: 8px;
+    letter-spacing: 0.15em; padding: 5px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: #00ff88; color: #00ff88; }
+  .refresh-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .live { display: flex; align-items: center; gap: 6px; font-size: 8px; color: #333; letter-spacing: 0.1em; }
+  .dot  { width: 5px; height: 5px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(0,255,136,0.5); }
+    50%      { opacity:0.5; box-shadow: 0 0 0 4px rgba(0,255,136,0); }
+  }
+
+  .guide { width: 100%; max-width: 360px; border: 1px solid #1a1a1a; padding: 18px 22px; }
+  .guide-title { font-size: 9px; letter-spacing: 0.2em; color: #333; margin-bottom: 12px; }
+  .guide-row { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 0.06em; padding: 5px 0; border-bottom: 1px solid #141414; }
+  .guide-row:last-child { border-bottom: none; }
+  .gr    { color: #3a3a3a; }
+  .calm  { color: #00ff88; font-weight: 600; }
+  .neut  { color: #666;    font-weight: 600; }
+  .caut  { color: #ffcc00; font-weight: 600; }
+  .fear  { color: #ff8800; font-weight: 600; }
+  .xfear { color: #ff4466; font-weight: 600; }
+
+  .spinning { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="label">CBOE · S&P 500</div>
+  <div class="subtitle">Volatility Index · Fear Gauge</div>
+</div>
+
+<div class="card">
+  <div class="price neutral" id="price">--</div>
+  <div class="change neutral" id="change"><span class="spinning">◌</span> Fetching...</div>
+
+  <div class="meter-label">Fear Level</div>
+  <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+  <div class="meter-zones">
+    <span>CALM &lt;15</span><span>MODERATE</span><span>FEAR &gt;30</span><span>EXTREME &gt;40</span>
+  </div>
+
+  <div class="badge neutral" id="badge">—</div>
+
+  <div class="divider"></div>
+  <div class="meta-row"><span>DAY LOW</span><span class="meta-val" id="low">—</span></div>
+  <div class="meta-row"><span>DAY HIGH</span><span class="meta-val" id="high">—</span></div>
+  <div class="meta-row"><span>PREV CLOSE</span><span class="meta-val" id="prev">—</span></div>
+  <div class="meta-row"><span>AS OF</span><span class="meta-val" id="asof">—</span></div>
+
+  <div class="footer-row">
+    <div class="live"><div class="dot"></div>AI-POWERED</div>
+    <button class="refresh-btn" id="refreshBtn" onclick="fetchVIX()">↺ REFRESH</button>
+  </div>
+  <div class="updated" id="updated"></div>
+</div>
+
+<div class="guide">
+  <div class="guide-title">Reading the VIX</div>
+  <div class="guide-row"><span class="gr">&lt; 15</span><span class="calm">CALM — Low volatility</span></div>
+  <div class="guide-row"><span class="gr">15 – 20</span><span class="neut">NEUTRAL — Normal market</span></div>
+  <div class="guide-row"><span class="gr">20 – 25</span><span class="caut">CAUTIOUS — Watch closely</span></div>
+  <div class="guide-row"><span class="gr">25 – 35</span><span class="fear">FEAR — Elevated anxiety</span></div>
+  <div class="guide-row"><span class="gr">&gt; 35</span><span class="xfear">EXTREME FEAR — Crisis mode</span></div>
+</div>
+
+<script>
+  const API_KEY = '%%ANTHROPIC_API_KEY%%';
+
+  async function fetchVIX() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    document.getElementById('change').innerHTML = '<span class="spinning">◌</span> Fetching...';
+    document.getElementById('change').className = 'change neutral';
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          system: `Search for the current live VIX index price and return ONLY a raw JSON object, no markdown, no backticks, no explanation. Format exactly:
+{"price":23.45,"change":1.23,"changePct":5.62,"low":21.10,"high":24.50,"prev":22.22,"asOf":"Mar 9 2026"}
+All numeric fields must be numbers. asOf is a string.`,
+          messages: [{ role: 'user', content: 'Current VIX value now. JSON only.' }]
+        })
+      });
+
+      const data = await res.json();
+      const textBlock = data.content.find(b => b.type === 'text');
+      if (!textBlock) throw new Error('No response');
+
+      const clean = textBlock.text.replace(/```json|```/g, '').trim();
+      const vix = JSON.parse(clean);
+
+      const price = parseFloat(vix.price);
+      const diff  = parseFloat(vix.change);
+      const pct   = parseFloat(vix.changePct);
+      const isUp  = diff >= 0;
+
+      document.getElementById('price').textContent = price.toFixed(2);
+      document.getElementById('price').className = 'price ' + (isUp ? 'up' : 'down');
+
+      document.getElementById('change').textContent = `${isUp?'▲':'▼'} ${Math.abs(diff).toFixed(2)}  (${Math.abs(pct).toFixed(2)}%)`;
+      document.getElementById('change').className = 'change ' + (isUp ? 'up' : 'down');
+
+      const fill = document.getElementById('meterFill');
+      fill.style.width = Math.min((price / 60) * 100, 100) + '%';
+      fill.style.background = price < 15 ? '#00ff88' : price < 25 ? '#ffcc00' : price < 35 ? '#ff8800' : '#ff4466';
+
+      let label, col;
+      if      (price < 15) { label = 'CALM';        col = '#00ff88'; }
+      else if (price < 20) { label = 'NEUTRAL';      col = '#666';   }
+      else if (price < 25) { label = 'CAUTIOUS';     col = '#ffcc00';}
+      else if (price < 30) { label = 'ELEVATED';     col = '#ff8800';}
+      else if (price < 40) { label = 'FEAR';         col = '#ff4466';}
+      else                 { label = 'EXTREME FEAR'; col = '#ff4466';}
+
+      const badge = document.getElementById('badge');
+      badge.textContent = label;
+      badge.style.color = col;
+      badge.style.borderColor = col;
+
+      document.getElementById('low').textContent  = parseFloat(vix.low).toFixed(2);
+      document.getElementById('high').textContent = parseFloat(vix.high).toFixed(2);
+      document.getElementById('prev').textContent = parseFloat(vix.prev).toFixed(2);
+      document.getElementById('asof').textContent = vix.asOf || '—';
+      document.getElementById('updated').textContent =
+        'Fetched ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+    } catch(e) {
+      document.getElementById('price').textContent = '—';
+      document.getElementById('change').textContent = 'Error — ' + e.message;
+      document.getElementById('change').className = 'change neutral';
+    }
+
+    btn.disabled = false;
+  }
+
+  fetchVIX();
+  setInterval(fetchVIX, 5 * 60 * 1000);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIX Fear Gauge</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 20px;
     padding: 32px 16px;
   }
