@@ -4,158 +4,133 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIX Fear Gauge</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: #0a0a0a;
-    color: #e8e8e8;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
+    padding: 32px 16px;
   }
-  .card { width: 340px; background: #111; border: 1px solid #222; padding: 36px; }
-  .label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: #555; text-transform: uppercase; margin-bottom: 6px; }
-  .title { font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.1em; color: #888; margin-bottom: 32px; }
-  .price { font-family: 'IBM Plex Mono', monospace; font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 12px; transition: color 0.4s; }
-  .change { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.05em; margin-bottom: 32px; }
-  .up   { color: #ff4466; }
-  .down { color: #00ff88; }
+  .header {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #444;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: #666;
+  }
+  .widget-wrap {
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid #1e1e1e;
+  }
+  .guide {
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid #1e1e1e;
+    padding: 20px 24px;
+  }
+  .guide-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: #444;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .guide-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 6px 0;
+    border-bottom: 1px solid #161616;
+  }
+  .guide-row:last-child { border-bottom: none; }
+  .guide-range { color: #555; }
+  .guide-label { font-weight: 600; }
+  .calm    { color: #00ff88; }
   .neutral { color: #888; }
-  .meter-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: #444; text-transform: uppercase; margin-bottom: 8px; }
-  .meter-track { height: 4px; background: #1e1e1e; width: 100%; margin-bottom: 6px; }
-  .meter-fill { height: 100%; width: 0%; transition: width 1s ease, background 0.4s; }
-  .meter-zones { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #333; letter-spacing: 0.05em; margin-bottom: 28px; }
-  .sentiment-badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; padding: 6px 12px; border: 1px solid currentColor; margin-bottom: 28px; }
-  .divider { height: 1px; background: #1e1e1e; margin-bottom: 20px; }
-  .meta-row { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #444; letter-spacing: 0.08em; margin-bottom: 8px; }
-  .meta-val { color: #666; }
-  .footer { margin-top: 24px; display: flex; justify-content: space-between; align-items: center; }
-  .updated { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #333; letter-spacing: 0.1em; }
-  .live { display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #444; letter-spacing: 0.1em; }
-  .dot { width: 5px; height: 5px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
-  @keyframes pulse {
-    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(0,255,136,0.5); }
-    50%      { opacity:0.5; box-shadow: 0 0 0 4px rgba(0,255,136,0); }
+  .caution { color: #ffcc00; }
+  .fear    { color: #ff8800; }
+  .extreme { color: #ff4466; }
+  .footer {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: #333;
+    text-align: center;
   }
-  a { color: #444; font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 0.1em; text-decoration: none; }
-  a:hover { color: #888; }
-  .error-msg { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #555; line-height: 1.6; }
-  .retry-btn { margin-top: 16px; background: none; border: 1px solid #333; color: #555; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
-  .retry-btn:hover { border-color: #00ff88; color: #00ff88; }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="label">CBOE</div>
-  <div class="title">Volatility Index · Fear Gauge</div>
 
-  <div id="main">
-    <div class="price neutral" id="price">--.-—</div>
-    <div class="change neutral" id="change">Loading...</div>
+<div class="header">
+  <div class="label">CBOE · S&amp;P 500</div>
+  <div class="subtitle">Volatility Index · Fear Gauge</div>
+</div>
 
-    <div class="meter-label">Fear Level</div>
-    <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
-    <div class="meter-zones">
-      <span>CALM &lt;15</span><span>MODERATE</span><span>FEAR &gt;30</span><span>EXTREME &gt;40</span>
-    </div>
-
-    <div class="sentiment-badge neutral" id="badge">—</div>
-
-    <div class="divider"></div>
-    <div class="meta-row"><span>DAY LOW</span><span class="meta-val" id="low">—</span></div>
-    <div class="meta-row"><span>DAY HIGH</span><span class="meta-val" id="high">—</span></div>
-    <div class="meta-row"><span>PREV CLOSE</span><span class="meta-val" id="prev">—</span></div>
-
-    <div class="footer">
-      <div class="updated" id="updated">—</div>
-      <div class="live"><div class="dot"></div> LIVE · <a href="https://finance.yahoo.com/quote/%5EVIX" target="_blank">↗ YAHOO</a></div>
-    </div>
+<!-- TradingView Single Ticker Widget -->
+<div class="widget-wrap">
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+    {
+      "symbol": "TVC:VIX",
+      "width": "100%",
+      "colorTheme": "dark",
+      "isTransparent": false,
+      "locale": "en"
+    }
+    </script>
   </div>
 </div>
 
-<script>
-  // Try multiple free CORS proxies in sequence
-  const PROXIES = [
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://thingproxy.freeboard.io/fetch/${url}`,
-  ];
-
-  const TARGET = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d';
-
-  async function fetchWithFallback() {
-    for (const proxy of PROXIES) {
-      try {
-        const res = await fetch(proxy(TARGET), { signal: AbortSignal.timeout(6000) });
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data?.chart?.result?.[0]) return data;
-      } catch(e) { continue; }
+<!-- TradingView Mini Chart Widget -->
+<div class="widget-wrap">
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+    {
+      "symbol": "TVC:VIX",
+      "width": "100%",
+      "height": 220,
+      "locale": "en",
+      "dateRange": "1M",
+      "colorTheme": "dark",
+      "isTransparent": false,
+      "autosize": false,
+      "largeChartUrl": "https://www.tradingview.com/symbols/TVC-VIX/"
     }
-    throw new Error('All proxies failed');
-  }
+    </script>
+  </div>
+</div>
 
-  async function load() {
-    try {
-      const data = await fetchWithFallback();
-      const m = data.chart.result[0].meta;
+<!-- Fear guide -->
+<div class="guide">
+  <div class="guide-title">Reading the VIX</div>
+  <div class="guide-row"><span class="guide-range">&lt; 15</span><span class="guide-label calm">CALM — Low volatility</span></div>
+  <div class="guide-row"><span class="guide-range">15 – 20</span><span class="guide-label neutral">NEUTRAL — Normal market</span></div>
+  <div class="guide-row"><span class="guide-range">20 – 25</span><span class="guide-label caution">CAUTIOUS — Watch closely</span></div>
+  <div class="guide-row"><span class="guide-range">25 – 35</span><span class="guide-label fear">FEAR — Elevated anxiety</span></div>
+  <div class="guide-row"><span class="guide-range">&gt; 35</span><span class="guide-label extreme">EXTREME FEAR — Crisis mode</span></div>
+</div>
 
-      const price = m.regularMarketPrice;
-      const prev  = m.previousClose || m.chartPreviousClose;
-      const diff  = price - prev;
-      const pct   = (diff / prev) * 100;
-      const isUp  = diff >= 0;
+<div class="footer">Data by TradingView · Auto-updates</div>
 
-      document.getElementById('price').textContent = price.toFixed(2);
-      document.getElementById('price').className = 'price ' + (isUp ? 'up' : 'down');
-
-      const arrow = isUp ? '▲' : '▼';
-      document.getElementById('change').textContent = `${arrow} ${Math.abs(diff).toFixed(2)}  (${Math.abs(pct).toFixed(2)}%)`;
-      document.getElementById('change').className = 'change ' + (isUp ? 'up' : 'down');
-
-      const fill = document.getElementById('meterFill');
-      fill.style.width = Math.min((price / 60) * 100, 100) + '%';
-      fill.style.background = price < 15 ? '#00ff88' : price < 25 ? '#ffcc00' : price < 35 ? '#ff8800' : '#ff4466';
-
-      let label, badgeColor;
-      if      (price < 15) { label = 'CALM';        badgeColor = '#00ff88'; }
-      else if (price < 20) { label = 'NEUTRAL';      badgeColor = '#888';   }
-      else if (price < 25) { label = 'CAUTIOUS';     badgeColor = '#ffcc00';}
-      else if (price < 30) { label = 'ELEVATED';     badgeColor = '#ff8800';}
-      else if (price < 40) { label = 'FEAR';         badgeColor = '#ff4466';}
-      else                 { label = 'EXTREME FEAR'; badgeColor = '#ff4466';}
-
-      const badge = document.getElementById('badge');
-      badge.textContent = label;
-      badge.style.color = badgeColor;
-      badge.style.borderColor = badgeColor;
-
-      document.getElementById('low').textContent  = m.regularMarketDayLow.toFixed(2);
-      document.getElementById('high').textContent = m.regularMarketDayHigh.toFixed(2);
-      document.getElementById('prev').textContent = prev.toFixed(2);
-      document.getElementById('updated').textContent =
-        'UPD ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
-    } catch(e) {
-      document.getElementById('price').textContent = '—';
-      document.getElementById('price').className = 'price neutral';
-      document.getElementById('change').innerHTML = `
-        <div class="error-msg">
-          Could not load VIX data.<br>
-          Open in a browser (not a local file)<br>
-          or check your network.
-        </div>
-        <button class="retry-btn" onclick="load()">↺ RETRY</button>
-      `;
-      document.getElementById('change').className = '';
-    }
-  }
-
-  load();
-  setInterval(load, 60000);
-</script>
 </body>
 </html>
+
