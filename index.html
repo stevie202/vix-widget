@@ -138,10 +138,10 @@
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
           tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: `You are a financial data assistant. Search the web for the current VIX index value, then respond with ONLY a raw JSON object — no markdown, no backticks, no explanation. Format exactly:
+          system: `You are a real-time financial data assistant. You MUST search the web for the live VIX index price right now — do NOT rely on training data or cached values. Search for "VIX index current price" and use the most recent result. Then respond with ONLY a raw JSON object, no markdown, no backticks, no explanation before or after. Format exactly:
 {"price":23.45,"change":1.23,"changePct":5.62,"low":21.10,"high":24.50,"prev":22.22,"asOf":"Mar 9 2026"}
 All numeric fields must be plain numbers. asOf is a string.`,
-          messages: [{ role: 'user', content: 'Search for the current VIX index value and return only the JSON.' }]
+          messages: [{ role: 'user', content: 'What is the VIX index value RIGHT NOW today? Search for the most current real-time price, not historical data. The date is ' + new Date().toDateString() + '. Return only JSON.' }]
         })
       });
 
