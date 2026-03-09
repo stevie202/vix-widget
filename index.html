@@ -136,21 +136,30 @@
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 300,
+          max_tokens: 1000,
           tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: `Search for the current live VIX index price and return ONLY a raw JSON object, no markdown, no backticks, no explanation. Format exactly:
+          system: `You are a financial data assistant. Search the web for the current VIX index value, then respond with ONLY a raw JSON object — no markdown, no backticks, no explanation. Format exactly:
 {"price":23.45,"change":1.23,"changePct":5.62,"low":21.10,"high":24.50,"prev":22.22,"asOf":"Mar 9 2026"}
-All numeric fields must be numbers. asOf is a string.`,
-          messages: [{ role: 'user', content: 'Current VIX value now. JSON only.' }]
+All numeric fields must be plain numbers. asOf is a string.`,
+          messages: [{ role: 'user', content: 'Search for the current VIX index value and return only the JSON.' }]
         })
       });
 
       const data = await res.json();
-      const textBlock = data.content.find(b => b.type === 'text');
-      if (!textBlock) throw new Error('No response');
 
-      const clean = textBlock.text.replace(/```json|```/g, '').trim();
-      const vix = JSON.parse(clean);
+      if (data.error) throw new Error(data.error.message || 'API error');
+      if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected response: ' + JSON.stringify(data));
+
+      // web_search returns tool_use blocks then a final text block — get the last text block
+      const textBlocks = data.content.filter(b => b.type === 'text');
+      if (!textBlocks.length) throw new Error('No text block in response');
+      const textBlock = textBlocks[textBlocks.length - 1];
+
+      // Extract JSON even if surrounded by text
+      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON in: ' + textBlock.text.slice(0, 100));
+
+      const vix = JSON.parse(jsonMatch[0]);
 
       const price = parseFloat(vix.price);
       const diff  = parseFloat(vix.change);
