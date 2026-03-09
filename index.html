@@ -89,7 +89,7 @@
   <div class="meter-label">Fear Level</div>
   <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
   <div class="meter-zones">
-    <span>CALM &lt;15</span><span>MODERATE</span><span>FEAR &gt;30</span><span>EXTREME &gt;40</span>
+    <span>CALM &lt;15</span><span>NEUTRAL 15</span><span>CONCERN 25</span><span>REACT 35+</span>
   </div>
 
   <div class="badge neutral" id="badge">—</div>
@@ -101,7 +101,7 @@
   <div class="meta-row"><span>AS OF</span><span class="meta-val" id="asof">—</span></div>
 
   <div class="footer-row">
-    <div class="live"><div class="dot"></div>AI-POWERED</div>
+    <div class="live"><div class="dot"></div>YAHOO FINANCE</div>
     <button class="refresh-btn" id="refreshBtn" onclick="fetchVIX()">↺ REFRESH</button>
   </div>
   <div class="updated" id="updated"></div>
@@ -110,14 +110,14 @@
 <div class="guide">
   <div class="guide-title">Reading the VIX</div>
   <div class="guide-row"><span class="gr">&lt; 15</span><span class="calm">CALM — Low volatility</span></div>
-  <div class="guide-row"><span class="gr">15 – 20</span><span class="neut">NEUTRAL — Normal market</span></div>
-  <div class="guide-row"><span class="gr">20 – 25</span><span class="caut">CAUTIOUS — Watch closely</span></div>
-  <div class="guide-row"><span class="gr">25 – 35</span><span class="fear">FEAR — Elevated anxiety</span></div>
-  <div class="guide-row"><span class="gr">&gt; 35</span><span class="xfear">EXTREME FEAR — Crisis mode</span></div>
+  <div class="guide-row"><span class="gr">15 – 19</span><span class="neut">NEUTRAL — Normal market</span></div>
+  <div class="guide-row"><span class="gr">20 – 24</span><span class="caut">CAUTIOUS — Watch closely</span></div>
+  <div class="guide-row"><span class="gr">25 – 34</span><span class="fear">CONCERN — Elevated anxiety</span></div>
+  <div class="guide-row"><span class="gr">&gt;= 35</span><span class="xfear">REACT — Review and take action</span></div>
 </div>
 
 <script>
-  const API_KEY = '%%ANTHROPIC_API_KEY%%';
+
 
   async function fetchVIX() {
     const btn = document.getElementById('refreshBtn');
@@ -126,40 +126,24 @@
     document.getElementById('change').className = 'change neutral';
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: `You are a real-time financial data assistant. You MUST search the web for the live VIX index price right now — do NOT rely on training data or cached values. Search for "VIX index current price" and use the most recent result. Then respond with ONLY a raw JSON object, no markdown, no backticks, no explanation before or after. Format exactly:
-{"price":23.45,"change":1.23,"changePct":5.62,"low":21.10,"high":24.50,"prev":22.22,"asOf":"Mar 9 2026"}
-All numeric fields must be plain numbers. asOf is a string.`,
-          messages: [{ role: 'user', content: 'What is the VIX index value RIGHT NOW today? Search for the most current real-time price, not historical data. The date is ' + new Date().toDateString() + '. Return only JSON.' }]
-        })
-      });
-
+      // Use Yahoo Finance directly — works from HTTPS hosted pages (no CORS issue)
+      const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Yahoo Finance returned ' + res.status);
       const data = await res.json();
 
-      if (data.error) throw new Error(data.error.message || 'API error');
-      if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected response: ' + JSON.stringify(data));
+      if (!data.chart?.result?.[0]) throw new Error('No data from Yahoo Finance');
+      const m = data.chart.result[0].meta;
 
-      // web_search returns tool_use blocks then a final text block — get the last text block
-      const textBlocks = data.content.filter(b => b.type === 'text');
-      if (!textBlocks.length) throw new Error('No text block in response');
-      const textBlock = textBlocks[textBlocks.length - 1];
-
-      // Extract JSON even if surrounded by text
-      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON in: ' + textBlock.text.slice(0, 100));
-
-      const vix = JSON.parse(jsonMatch[0]);
+      const vix = {
+        price:     m.regularMarketPrice,
+        change:    m.regularMarketPrice - (m.previousClose || m.chartPreviousClose),
+        changePct: ((m.regularMarketPrice - (m.previousClose || m.chartPreviousClose)) / (m.previousClose || m.chartPreviousClose)) * 100,
+        low:       m.regularMarketDayLow,
+        high:      m.regularMarketDayHigh,
+        prev:      m.previousClose || m.chartPreviousClose,
+        asOf:      new Date(m.regularMarketTime * 1000).toLocaleString('en-GB', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})
+      };
 
       const price = parseFloat(vix.price);
       const diff  = parseFloat(vix.change);
@@ -174,15 +158,14 @@ All numeric fields must be plain numbers. asOf is a string.`,
 
       const fill = document.getElementById('meterFill');
       fill.style.width = Math.min((price / 60) * 100, 100) + '%';
-      fill.style.background = price < 15 ? '#00ff88' : price < 25 ? '#ffcc00' : price < 35 ? '#ff8800' : '#ff4466';
+      fill.style.background = price < 15 ? '#00ff88' : price < 20 ? '#666' : price < 25 ? '#ffcc00' : price < 35 ? '#ff8800' : '#ff4466';
 
       let label, col;
-      if      (price < 15) { label = 'CALM';        col = '#00ff88'; }
-      else if (price < 20) { label = 'NEUTRAL';      col = '#666';   }
-      else if (price < 25) { label = 'CAUTIOUS';     col = '#ffcc00';}
-      else if (price < 30) { label = 'ELEVATED';     col = '#ff8800';}
-      else if (price < 40) { label = 'FEAR';         col = '#ff4466';}
-      else                 { label = 'EXTREME FEAR'; col = '#ff4466';}
+      if      (price < 15) { label = 'CALM';    col = '#00ff88'; }
+      else if (price < 20) { label = 'NEUTRAL';  col = '#666';   }
+      else if (price < 25) { label = 'CAUTIOUS'; col = '#ffcc00';}
+      else if (price < 35) { label = 'CONCERN';  col = '#ff8800';}
+      else                 { label = 'REACT';    col = '#ff4466';}
 
       const badge = document.getElementById('badge');
       badge.textContent = label;
@@ -191,7 +174,10 @@ All numeric fields must be plain numbers. asOf is a string.`,
 
       document.getElementById('low').textContent  = parseFloat(vix.low).toFixed(2);
       document.getElementById('high').textContent = parseFloat(vix.high).toFixed(2);
-      document.getElementById('prev').textContent = parseFloat(vix.prev).toFixed(2);
+      const prevEl = document.getElementById('prev');
+      const prevPrice = parseFloat(vix.prev);
+      prevEl.textContent = prevPrice.toFixed(2);
+      prevEl.style.color = prevPrice < 15 ? '#00ff88' : prevPrice < 20 ? '#666' : prevPrice < 25 ? '#ffcc00' : prevPrice < 35 ? '#ff8800' : '#ff4466';
       document.getElementById('asof').textContent = vix.asOf || '—';
       document.getElementById('updated').textContent =
         'Fetched ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
