@@ -101,7 +101,7 @@
   <div class="meta-row"><span>AS OF</span><span class="meta-val" id="asof">—</span></div>
 
   <div class="footer-row">
-    <div class="live"><div class="dot"></div>YAHOO FINANCE</div>
+    <div class="live"><div class="dot"></div>YAHOO FINANCE · LIVE</div>
     <button class="refresh-btn" id="refreshBtn" onclick="fetchVIX()">↺ REFRESH</button>
   </div>
   <div class="updated" id="updated"></div>
@@ -126,10 +126,10 @@
     document.getElementById('change').className = 'change neutral';
 
     try {
-      // Use Yahoo Finance directly — works from HTTPS hosted pages (no CORS issue)
-      const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d';
+      // Call our serverless proxy to avoid CORS
+      const url = '/api/vix';
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Yahoo Finance returned ' + res.status);
+      if (!res.ok) throw new Error('Proxy returned ' + res.status);
       const data = await res.json();
 
       if (!data.chart?.result?.[0]) throw new Error('No data from Yahoo Finance');
